@@ -81,9 +81,11 @@ class SerialMonitorApp:
 
     def get_new_filename(self):
         """Generate a unique filename to prevent overwriting."""
+        if not os.path.exists("data"):
+            os.makedirs("data")
         i = 1
         while True:
-            filename = f"file{i}.txt"
+            filename = f"data/file{i}.txt"
             if not os.path.exists(filename):
                 return filename
             i += 1
