@@ -59,7 +59,7 @@ class SerialMonitorApp:
         ]
 
         self.subval_values = []
-        for i in range(15):
+        for i in range(19):  # Increase the range to 19 to match the number of subvals
             label = Label(self.data_frame, text=self.subval_labels[i], font=("Arial", 14))
             value = Label(self.data_frame, text="N/A", font=("Arial", 14), bg="white", width=40, anchor="w")
             label.grid(row=3+i, column=0, padx=10, pady=5, sticky="e")
