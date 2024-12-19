@@ -35,24 +35,29 @@ class SerialMonitorApp:
         self.box4_label.grid(row=2, column=0, padx=10, pady=5, sticky="e")
         self.box4_value.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
-        # Boxes for subvals (15 values)
+        # Labels for subvals
         self.subval_labels = [
-            "RTC Timestamp",          # `2000/01/01`
-            "X-axis Acceleration",    # `15.19`
-            "Y-axis Acceleration",    # `0.1`
-            "Z-axis Acceleration",    # `0.42`
-            "X-axis Gyroscope",       # `87.71`
-            "Y-axis Gyroscope",       # `-54.22`
-            "Z-axis Gyroscope",       # `71.53`
-            "IMU Temperature",        # `-56.5`
-            "Atmospheric Pressure",   # `0.0`
-            "Altitude",               # `838206.0`
-            "GPS Latitude",           # `32.9394`
-            "GPS Longitude",          # `-106.922`
-            "GPS Speed",              # `77.95`
-            "Number of Satellites",   # `8`
-            "Signal Strength"         # `-99`
+            "RTC Timestamp",
+            "X-axis Acceleration (accel_x)",
+            "Y-axis Acceleration (accel_y)",
+            "Z-axis Acceleration (accel_z)",
+            "X-axis Gyroscope (gyro_x)",
+            "Y-axis Gyroscope (gyro_y)",
+            "Z-axis Gyroscope (gyro_z)",
+            "IMU Temperature (imu_temp)",
+            "BME Temp (bme_temp)",
+            "BME Pressure (bme_pressure)",
+            "BME Altitude (bme_altitude)",
+            "BME Humidity (bme_humidity)",
+            "GPS Fix (gps_fix)",
+            "GPS Fix Quality (gps_fix_quality)",
+            "GPS Latitude (gps_lat)",
+            "GPS Longitude (gps_lon)",
+            "GPS Speed (gps_speed)",
+            "GPS Altitude (gps_altitude)",
+            "GPS Satellites (gps_satellites)"
         ]
+
         self.subval_values = []
         for i in range(15):
             label = Label(self.data_frame, text=self.subval_labels[i], font=("Arial", 14))
@@ -83,18 +88,10 @@ class SerialMonitorApp:
                 return filename
             i += 1
 
-    def write_to_file(self):
-        """Write the current values to the file in columns."""
+    def write_to_file(self, line):
+        """Write a line of serial data to the file."""
         with open(self.filename, "a") as file:
-            # Collect data for all boxes
-            row_data = [
-                self.box1_value.cget("text"),  # Message Length
-                *[box.cget("text") for box in self.subval_values],  # Subvals
-                self.box3_value.cget("text"),  # RSSI
-                self.box4_value.cget("text")   # Snr
-            ]
-            # Write as a single row
-            file.write("\t".join(row_data) + "\n")
+            file.write(line + "\n")  # Write the line of data to the file
 
     def read_serial_data(self):
         """Read data from the serial port."""
@@ -111,7 +108,7 @@ class SerialMonitorApp:
             self.serial_buffer.append(f"Unexpected error: {e}")
 
     def update_gui(self):
-        """Update the GUI with new serial data."""
+        """Update the GUI with new serial data in the correct order."""
         while self.serial_buffer:
             line = self.serial_buffer.pop(0)
             self.raw_data_text.insert(tk.END, line + "\n")
@@ -121,17 +118,43 @@ class SerialMonitorApp:
                 value = line.split(":")[1].strip()
                 self.box1_value.config(text=value)
             elif line.startswith("Message:"):
-                value = line.split(": ")[1].strip()
+                value = line.split(": ", 1)[1].strip()
                 try:
-                    # Parse subvals
-                    _, subvals = value.split("] ", 1)
-                    subvals = subvals.split(",")
+                    # Example 'value' format:
+                    # [2024/12/19 (Thursday) 13:06:42] accel_x,accel_y,accel_z,...
+                    timestamp_part, data_part = value.split("] ", 1)
+                    timestamp = timestamp_part.strip("[")
+                    subvals = data_part.split(",")
 
-                    # Update each subval box
-                    for i in range(min(len(subvals), 15)):  # Ensure we only update the 15 boxes
-                        self.subval_values[i].config(text=subvals[i].strip())
+                    # subvals should have 18 values in the corrected format:
+                    # 0: accel_x
+                    # 1: accel_y
+                    # 2: accel_z
+                    # 3: gyro_x
+                    # 4: gyro_y
+                    # 5: gyro_z
+                    # 6: imu_temp
+                    # 7: bme_temp
+                    # 8: bme_pressure
+                    # 9: bme_altitude
+                    # 10: bme_humidity
+                    # 11: gps_fix
+                    # 12: gps_fix_quality
+                    # 13: gps_lat
+                    # 14: gps_lon
+                    # 15: gps_speed
+                    # 16: gps_altitude
+                    # 17: gps_satellites
+
+                    # Update the timestamp (index 0 in self.subval_values)
+                    self.subval_values[0].config(text=timestamp.strip())
+
+                    # Update each of the subvals
+                    for i in range(len(subvals)):
+                        self.subval_values[i+1].config(text=subvals[i].strip())
+
                 except ValueError:
-                    print("Error parsing subvals:", value)
+                    print("Error parsing telemetry data:", value)
             elif line.startswith("RSSI:"):
                 value = line.split(":")[1].strip()
                 self.box3_value.config(text=value)
@@ -139,8 +162,7 @@ class SerialMonitorApp:
                 value = line.split(":")[1].strip()
                 self.box4_value.config(text=value)
 
-        # Write to the file after updating the GUI
-        self.write_to_file()
+            self.write_to_file(line)
 
         self.root.after(10, self.update_gui)
 
