@@ -1,7 +1,7 @@
 # gui.py
 
 import tkinter as tk
-from tkinter import Label
+from tkinter import Label, filedialog, messagebox
 import tkinter.ttk as ttk
 from serial_handler import SerialHandler
 from utils import get_new_filename
@@ -27,6 +27,7 @@ class SerialMonitorApp:
         # Add File menu
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="Replay Data", command=self.replay_data)
         self.file_menu.add_command(label="Exit", command=self.quit)
 
         # Add Options menu
@@ -36,7 +37,7 @@ class SerialMonitorApp:
         # Add Help menu
         self.help_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
-        self.help_menu.add_command(label="About")
+        self.help_menu.add_command(label="About", command=self.show_about)
 
         # Create a notebook (tabbed interface)
         self.notebook = ttk.Notebook(root)
@@ -133,7 +134,7 @@ class SerialMonitorApp:
                             self.subval_values[i+1].config(text=subvals[i].strip())
 
                 except ValueError:
-                    print("Error parsing telemetry data:", value)
+                    messagebox.showerror("Parsing Error", f"Error parsing telemetry data: {value}")
             elif line.startswith("RSSI:"):
                 value = line.split(":", 1)[1].strip()
                 self.box3_value.config(text=value)
@@ -157,3 +158,44 @@ class SerialMonitorApp:
         """Handle cleanup when quitting the application."""
         self.serial_handler.close_serial()
         self.root.destroy()
+
+    def show_about(self):
+        """Display the About dialog."""
+        messagebox.showinfo("About", "Serial Monitor App\nVersion 1.0\nDeveloped by Your Name")
+
+    def replay_data(self):
+        """Replay data from a selected file."""
+        # Prompt user to select a text file
+        file_path = filedialog.askopenfilename(
+            title="Select Data File",
+            filetypes=(("Text Files", "*.txt"), ("All Files", "*.*"))
+        )
+        if not file_path:
+            return  # User cancelled
+
+        # Verify file format
+        try:
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+            for line in lines:
+                line = line.strip()
+                if not (line.startswith("$Message length:") or
+                        line.startswith("Message:") or
+                        line.startswith("RSSI:") or
+                        line.startswith("Snr:")):
+                    raise ValueError(f"Invalid line format: {line}")
+        except Exception as e:
+            messagebox.showerror("File Error", f"Failed to load file: {e}")
+            return
+
+        # Check if already replaying
+        if self.serial_handler.is_replaying:
+            messagebox.showwarning("Replay Data", "Replay is already in progress.")
+            return
+
+        # Call serial_handler to replay data
+        success = self.serial_handler.replay_data(file_path)
+        if success:
+            messagebox.showinfo("Replay Data", "Data replay started.")
+        else:
+            messagebox.showwarning("Replay Data", "Replay is already in progress.")

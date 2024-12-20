@@ -4,6 +4,7 @@ import serial
 import threading
 import os
 from utils import get_new_filename
+import time
 
 class SerialHandler:
     def __init__(self, app):
@@ -12,6 +13,8 @@ class SerialHandler:
         self.running = False
         self.serial_thread = None
         self.filename = get_new_filename()
+        self.replay_thread = None
+        self.is_replaying = False
 
     def start_reading(self):
         """Start the serial reading thread."""
@@ -48,3 +51,29 @@ class SerialHandler:
         self.running = False
         if self.serial_thread:
             self.serial_thread.join(timeout=1)
+
+    def replay_data(self, file_path):
+        """Replay data from a file by injecting it into the serial_buffer."""
+        if self.is_replaying:
+            return False  # Replay already in progress
+
+        self.is_replaying = True
+        self.replay_thread = threading.Thread(target=self._replay_data_thread, args=(file_path,), daemon=True)
+        self.replay_thread.start()
+        return True
+
+    def _replay_data_thread(self, file_path):
+        """Thread to read the file and inject data into serial_buffer."""
+        try:
+            with open(file_path, 'r') as file:
+                for line in file:
+                    line = line.strip()
+                    if line:
+                        self.serial_buffer.append(line)
+                        # Simulate delay to mimic real-time data flow
+                        time.sleep(0.1)  # 100ms delay between lines
+        except Exception as e:
+            # Inject an error message into the buffer to notify the GUI
+            self.serial_buffer.append(f"Replay Error: {e}")
+        finally:
+            self.is_replaying = False
