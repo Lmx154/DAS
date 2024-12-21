@@ -162,15 +162,3 @@ time, latitude, longitude, altitude
 0.00, 26.2738, -98.4319, 68.00
 0.10, 26.2739, -98.4320, 68.05
 ```
-
----
-
-## License
-
-MIT License
-
-Copyright (c) 2024
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction...
