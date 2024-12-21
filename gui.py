@@ -10,6 +10,8 @@ import graph
 import data_loader
 from serial_handler import SerialHandler
 from utils import get_new_filename
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import filedialog, messagebox
 
 class SerialMonitorApp:
     def __init__(self, root):
@@ -37,6 +39,7 @@ class SerialMonitorApp:
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="Replay Data", command=self.replay_data)
         self.file_menu.add_command(label="Load Data File for Accel", command=self.load_accel_data)
+        self.file_menu.add_command(label="Load Trajectory & Altitude File", command=self.load_trajectory_altitude_data)
         self.file_menu.add_command(label="Close Loaded Graph", command=self.close_accel_data)
         self.file_menu.add_command(label="Exit", command=self.quit)
 
@@ -144,7 +147,35 @@ class SerialMonitorApp:
 
     def show_about(self):
         """Display the About dialog."""
-        messagebox.showinfo("About", "Serial Monitor App\nVersion 1.0\nDeveloped by Your Name")
+        messagebox.showinfo("About", "DAS GUI\nVersion 1.0\nDeveloped by Red Rocket inc.")
+
+    def load_trajectory_altitude_data(self):
+        """Prompt user for a file containing time, lat, lon, alt, then show the trajectory & altitude plot."""
+        file_path = filedialog.askopenfilename(
+            title="Select Trajectory & Altitude File",
+            filetypes=(("Text Files", "*.txt"), ("All Files", "*.*"))
+        )
+        if not file_path:
+            return  # user cancelled
+
+        try:
+            # 1) Load data
+            time_data, lat_data, lon_data, alt_data = (
+                data_loader.load_trajectory_altitude_data_from_file(file_path)
+            )
+
+            # 2) Create figure
+            fig = graph.get_trajectory_and_altitude_fig(
+                time_data, lat_data, lon_data, alt_data
+            )
+
+            # 3) Embed in the visualization_frame
+            self.traj_alt_canvas = FigureCanvasTkAgg(fig, master=self.visualization_frame)
+            self.traj_alt_canvas.draw()
+            self.traj_alt_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        except Exception as e:
+            messagebox.showerror("Data Error", str(e))
 
     def load_accel_data(self):
         """

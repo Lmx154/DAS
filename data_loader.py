@@ -2,6 +2,53 @@
 
 import numpy as np
 
+def load_trajectory_altitude_data_from_file(file_path):
+    """
+    Parse a file to extract time, latitude, longitude, and altitude
+    for rocket trajectory & altitude plotting.
+    Expected format per line: t, lat, lon, alt
+    Example:
+      0.00, 26.2738, -98.4319, 68.00
+    """
+    time_list = []
+    lat_list = []
+    lon_list = []
+    alt_list = []
+
+    with open(file_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Example format: "t, lat, lon, alt"
+            parts = line.split(',')
+            if len(parts) < 4:
+                continue  # skip lines that are incomplete
+
+            try:
+                t_val = float(parts[0].strip())
+                lat_val = float(parts[1].strip())
+                lon_val = float(parts[2].strip())
+                alt_val = float(parts[3].strip())
+
+                time_list.append(t_val)
+                lat_list.append(lat_val)
+                lon_list.append(lon_val)
+                alt_list.append(alt_val)
+
+            except ValueError:
+                # If conversion fails, skip this line
+                continue
+
+    time_data = np.array(time_list)
+    latitude = np.array(lat_list)
+    longitude = np.array(lon_list)
+    altitude = np.array(alt_list)
+
+    return time_data, latitude, longitude, altitude
+
+
 def load_acceleration_data_from_file(file_path):
     time_list = []
     accel_x_list = []
