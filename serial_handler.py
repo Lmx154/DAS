@@ -66,14 +66,17 @@ class SerialHandler:
         """Thread to read the file and inject data into serial_buffer."""
         try:
             with open(file_path, 'r') as file:
-                for line in file:
-                    line = line.strip()
-                    if line:
-                        self.serial_buffer.append(line)
+                data = file.read()
+                messages = data.split('\n')  # Assuming messages are separated by newlines
+                for message in messages:
+                    message = message.strip()
+                    if message:
+                        self.serial_buffer.append(message)
                         # Simulate delay to mimic real-time data flow
-                        time.sleep(0.1)  # 100ms delay between lines
+                        time.sleep(0.1)  # 100ms delay between messages
         except Exception as e:
             # Inject an error message into the buffer to notify the GUI
             self.serial_buffer.append(f"Replay Error: {e}")
         finally:
             self.is_replaying = False
+            
