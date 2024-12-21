@@ -147,7 +147,7 @@ class SerialMonitorApp:
 
     def show_about(self):
         """Display the About dialog."""
-        messagebox.showinfo("About", "DAS GUI\nVersion 1.0\nDeveloped by Red Rocket inc.")
+        messagebox.showinfo("About", "DAS GUI\nVersion 1.0\nDeveloped by UTRGV RLORG")
 
     def load_trajectory_altitude_data(self):
         """Prompt user for a file containing time, lat, lon, alt, then show the trajectory & altitude plot."""

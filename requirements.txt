@@ -1,2 +1,4 @@
 pyserial
 tk
+matplotlib
+numpy

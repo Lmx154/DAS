@@ -1,57 +1,120 @@
-# DAS
 
-Data Acquisition System.
+# DAS Rocket Telemetry GUI
+
+A Python-based application for reading, recording, and visualizing rocket telemetry data in real time, or from a pre-recorded file.
+
+## Table of Contents
+
+- [Overview](#overview)  
+- [Features](#features)  
+- [Project Structure](#project-structure)  
+- [Installation](#installation)  
+- [Usage](#usage)  
+- [Data Format](#data-format)  
+- [License](#license)
+
+---
+
+![About](./repo/image0.png)     ![Data](./repo/image.png)
+
+
+## Overview
+
+This project provides a **Tkinter**-based graphical interface for:
+
+1. **Reading real-time data** from a serial port (e.g., a microcontroller logging rocket telemetry).
+2. **Displaying real-time subvalues** such as accelerations, gyroscope readings, temperatures, altitudes, and GPS details.
+3. **Recording** the incoming data to a text file for future replay.
+4. **Replaying** recorded data and visualizing it in the GUI.
+5. **Plotting** the rocket’s trajectory and altitude using Matplotlib.
+
+---
+
+## Features
+
+- **Real-Time Telemetry**: Read from a serial port at 115,200 baud (configurable) and parse lines of text-based sensor data.  
+- **Automatic File Logging**: Save incoming telemetry lines to a timestamped text file.  
+- **Replay Mode**: Load previously saved data for analysis or demonstration.  
+- **Visualization**:
+  - **Acceleration vs. Time**  
+  - **Trajectory (Latitude/Longitude) & Altitude vs. Time**  
+  - Additional plots (Gyro, Pressure, etc.) can be added as needed.
+- **User-Friendly GUI**: Menu bar controls for serial operations, file loading, replay, and embedded Matplotlib plots.
+
+---
+
+## Project Structure
+
+```
+DAS/  
+├─ .venv/                # (Optional) Python virtual environment  
+├─ main.py               # Entry point for the Tkinter GUI  
+├─ gui.py                # Contains the SerialMonitorApp class (Tkinter-based)  
+├─ serial_handler.py     # Manages reading from serial port, file replay, and logging  
+├─ data_loader.py        # Functions to parse data from various file formats  
+├─ graph.py              # Matplotlib plotting functions (returning Figure objects)  
+├─ utils.py              # Utilities like get_new_filename() and other helpers  
+├─ README.md             # This README file  
+└─ requirements.txt      # (Optional) Lists dependencies (matplotlib, pyserial, etc.)
+```
+
+---
 
 ## Installation
 
-To install the dependencies for this project, run the following command:
+1. **Clone** or download this repository:
+   ```bash
+   git clone git@github.com:Lmx154/DAS.git
+   cd DAS
+   ```
 
-```sh
-pip install -r requirements.txt
+2. **(Optional) Create a virtual environment**:
+   ```bash
+   python -m venv .venv
+   # Linux/Mac:
+   source .venv/bin/activate  
+   # Windows:
+   .venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Confirm Python 3.x environment**:
+   ```bash
+   python --version
+   ```
+
+---
+
+## Usage
+
+1. Connect your rocket’s telemetry device to an available COM port (Windows) or /dev/tty.* (Mac/Linux).
+2. Run the GUI:
+   ```bash
+   python main.py
+   ```
+3. Use the menu options to operate the GUI.
+
+---
+
+## Data Format
+
+### Real-Time Lines
+
+Examples of lines arriving in real time from the rocket:
+
+**TASTM Launch Mode:**
+```
+$Message length: 130
+Message: [2024/12/19 (Thursday) 13:00:02] 15.1,-0.02,-0.4,82.33,-65.0,72.93,31.17,7.52,616.2,4003.17,0,1,2,32.9394,-106.922,82.16,4227.45,8
+RSSI: -97
+Snr: 7.87
 ```
 
-# Simulated Hardware
-# Telemetry Data Summary Table
-```bash
-[2000/01/01 (Saturday) 00:08:58] 15.19,0.1,0.42,87.71,-54.22,71.53,-56.5,-69.7,0.0,838206.0,0,1,2,32.9394,-106.922,77.95,838206.0,8
-RSSI: -99
-Snr: 8.32
-```
-
-| Data String Value | Source Code (C)                     | Description                                   |
-|--------------------|--------------------------------------|-----------------------------------------------|
-| `2000/01/01`       | `rtc.now()`                        | RTC timestamp.                               |
-| `15.19`            | `accel.getAccelX_mss()`            | X-axis acceleration (m/s²).                  |
-| `0.1`              | `accel.getAccelY_mss()`            | Y-axis acceleration (m/s²).                  |
-| `0.42`             | `accel.getAccelZ_mss()`            | Z-axis acceleration (m/s²).                  |
-| `87.71`            | `gx`                               | X-axis gyroscope (degrees/s).                |
-| `-54.22`           | `gy`                               | Y-axis gyroscope (degrees/s).                |
-| `71.53`            | `gz`                               | Z-axis gyroscope (degrees/s).                |
-| `-56.5`            | `accel.getTemperature_C()`         | IMU temperature (Celsius).                   |
-| `0.0`              | `bme.readPressure()`               | Atmospheric pressure (bar).                  |
-| `838206.0`         | `bme.readAltitude()`               | Altitude (meters).                           |
-| `32.9394`          | `ddmmToDD(GPS.latitude)`           | GPS latitude (decimal degrees).              |
-| `-106.922`         | `ddmmToDD(GPS.longitude)`          | GPS longitude (decimal degrees).             |
-| `77.95`            | `GPS.speed`                        | GPS speed (km/h).                            |
-| `8`                | `GPS.satellites`                   | Number of satellites.                        |
-| `-99`              | `LoRa.packetRssi()`                | Signal strength (dBm).                       |
-| `8.32`             | `LoRa.packetSnr()`                 | Signal-to-noise ratio.                       |
-
-
-# Actual Hardware
-
-# Table Mapping Data String Values to Variables
-
-```bash
-$Message length: 138
-Message: [2024/5/18 (Saturday) 21:50:56] 0.08,-0.40,-9.74,14.00,16.00,-96.00,31.25,33.56,1009.91,-31.06,35.39,1,2,26.273800,-98.431976,0.16,68.00,8
-RSSI: -99
-Snr: 8.00
-```
-
-
-
-### Actual Hardware Table
+## Telemetry Data Table
 
 | Value in Data String | Mapped Variable   | Description                                   |
 |----------------------|-------------------|-----------------------------------------------|
@@ -74,10 +137,40 @@ Snr: 8.00
 | `68.00`              | `gps_altitude`    | GPS altitude (m)                              |
 | `8`                  | `gps_satellites`  | Number of GPS satellites in use               |
 
----
+## Telemetry Data Format
 
-### Rewritten Data String with Abbreviations
+Data is input in the following format:
 
-```bash
+```
 [timestamp] accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, imu_temp, bme_temp, bme_pressure, bme_altitude, bme_humidity, gps_fix, gps_fix_quality, gps_lat, gps_lon, gps_speed, gps_altitude, gps_satellites
 ```
+
+### Acceleration Data File
+
+Format for loading acceleration data from a file:
+```
+time, accel_x, accel_y, accel_z
+0.00, 0.08, -0.40, -9.74
+0.10, 0.10, -0.35, -9.80
+```
+
+### Trajectory & Altitude File
+
+Example format for trajectory and altitude:
+```
+time, latitude, longitude, altitude
+0.00, 26.2738, -98.4319, 68.00
+0.10, 26.2739, -98.4320, 68.05
+```
+
+---
+
+## License
+
+MIT License
+
+Copyright (c) 2024
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction...
