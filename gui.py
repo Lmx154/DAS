@@ -3,69 +3,80 @@
 import tkinter as tk
 from tkinter import Label, filedialog, messagebox
 import tkinter.ttk as ttk
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+import graph
+import data_loader
 from serial_handler import SerialHandler
 from utils import get_new_filename
 
 class SerialMonitorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Serial Monitor - Subvals Boxes")
+        self.root.title("DAS GUI")
+
+        # ---------------- MENU BAR ----------------
+        self.menu_bar = tk.Menu(root)
+        root.config(menu=self.menu_bar)
+
+        # Serial menu
+        self.serial_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Serial", menu=self.serial_menu)
 
         # Initialize Serial Handler
         self.serial_handler = SerialHandler(self)
 
-        # Create a menu bar
-        self.menu_bar = tk.Menu(root)
-        root.config(menu=self.menu_bar)
-
-        # Add Serial menu
-        self.serial_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Serial", menu=self.serial_menu)
+        # Add commands to the Serial menu
         self.serial_menu.add_command(label="Open Serial", command=self.open_serial)
         self.serial_menu.add_command(label="Close Serial", command=self.close_serial)
-
-        # Add File menu
+        self.serial_menu.add_command(label="Select Serial", command=self.select_serial)
+        
+        # File menu
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
         self.file_menu.add_command(label="Replay Data", command=self.replay_data)
+        self.file_menu.add_command(label="Load Data File for Accel", command=self.load_accel_data)
+        self.file_menu.add_command(label="Close Loaded Graph", command=self.close_accel_data)
         self.file_menu.add_command(label="Exit", command=self.quit)
 
-        # Add Options menu
+        # Options menu
         self.options_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Options", menu=self.options_menu)
 
-        # Add Help menu
+        # Help menu
         self.help_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
         self.help_menu.add_command(label="About", command=self.show_about)
 
-        # Create a notebook (tabbed interface)
+        # ---------------- NOTEBOOK / TABS ----------------
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(expand=1, fill="both")
 
-        # Create a frame for data
         self.data_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.data_frame, text="Data")
 
-        # GUI Elements for Message Length, RSSI, Snr
-        self.box1_label = Label(self.data_frame, text="Message Length:", font=("Arial", 14))
-        self.box1_value = Label(self.data_frame, text="N/A", font=("Arial", 14), bg="white", width=40, anchor="w")
-        self.box3_label = Label(self.data_frame, text="RSSI:", font=("Arial", 14))
-        self.box3_value = Label(self.data_frame, text="N/A", font=("Arial", 14), bg="white", width=40, anchor="w")
-        self.box4_label = Label(self.data_frame, text="Snr:", font=("Arial", 14))
-        self.box4_value = Label(self.data_frame, text="N/A", font=("Arial", 14), bg="white", width=40, anchor="w")
+        self.visualization_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.visualization_frame, text="Data Visualization")
 
-        # Place Message Length, RSSI, Snr boxes
-        self.box1_label.grid(row=0, column=0, padx=10, pady=5, sticky="e")
-        self.box1_value.grid(row=0, column=1, padx=10, pady=5, sticky="w")
-        self.box3_label.grid(row=1, column=0, padx=10, pady=5, sticky="e")
-        self.box3_value.grid(row=1, column=1, padx=10, pady=5, sticky="w")
-        self.box4_label.grid(row=2, column=0, padx=10, pady=5, sticky="e")
-        self.box4_value.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        # Remove the buttons from the visualization tab
+        # self.load_data_button = tk.Button(
+        #     self.visualization_frame,
+        #     text="Load Data File for Accel",
+        #     command=self.load_accel_data
+        # )
+        # self.load_data_button.pack(side=tk.LEFT, pady=10, padx=5)
 
-        # Labels for subvals
+        # self.close_data_button = tk.Button(
+        #     self.visualization_frame,
+        #     text="Close Data",
+        #     command=self.close_accel_data
+        # )
+        # self.close_data_button.pack(side=tk.LEFT, pady=10, padx=5)
+
+        # ---------------- SUBVAL LABELS/VALUES ----------------
         self.subval_labels = [
-            "RTC Timestamp",
+            "RTC Timestamp",              # index 0
             "X-axis Acceleration (accel_x)",
             "Y-axis Acceleration (accel_y)",
             "Z-axis Acceleration (accel_z)",
@@ -87,65 +98,25 @@ class SerialMonitorApp:
         ]
 
         self.subval_values = []
-        for i in range(len(self.subval_labels)):
-            label = Label(self.data_frame, text=self.subval_labels[i], font=("Arial", 14))
+        for i, label_text in enumerate(self.subval_labels):
+            label = Label(self.data_frame, text=label_text, font=("Arial", 14))
             value = Label(self.data_frame, text="N/A", font=("Arial", 14), bg="white", width=40, anchor="w")
             label.grid(row=3+i, column=0, padx=10, pady=5, sticky="e")
             value.grid(row=3+i, column=1, padx=10, pady=5, sticky="w")
             self.subval_values.append(value)
 
-        # Create a text widget for raw data at the bottom
+        # ---------------- RAW DATA TEXT BOX ----------------
         self.raw_data_text = tk.Text(root, wrap="word", height=10, width=80)
         self.raw_data_text.pack(side=tk.BOTTOM, padx=10, pady=10, fill=tk.X)
 
-        # Serial Communication Variables
+        # ---------------- SERIAL & GUI LOOP SETUP ----------------
         self.serial_buffer = []
-        self.filename = get_new_filename()  # Get a unique filename
+        self.filename = get_new_filename()
         self.serial_handler.start_reading()
 
         self.update_gui()
 
-    def update_gui(self):
-        """Update the GUI with new serial data in the correct order."""
-        while self.serial_handler.serial_buffer:
-            line = self.serial_handler.serial_buffer.pop(0)
-            self.raw_data_text.insert(tk.END, line + "\n")
-            self.raw_data_text.see(tk.END)  # Scroll to the end
-
-            if line.startswith("$Message length:"):
-                value = line.split(":", 1)[1].strip()
-                self.box1_value.config(text=value)
-            elif line.startswith("Message:"):
-                value = line.split(": ", 1)[1].strip()
-                try:
-                    # Example 'value' format:
-                    # [2024/12/19 (Thursday) 13:06:42] accel_x,accel_y,accel_z,...
-                    timestamp_part, data_part = value.split("] ", 1)
-                    timestamp = timestamp_part.strip("[")
-                    subvals = data_part.split(",")
-
-                    # Update the timestamp (index 0 in self.subval_values)
-                    if len(self.subval_values) > 0:
-                        self.subval_values[0].config(text=timestamp.strip())
-
-                    # Update each of the subvals
-                    for i in range(len(subvals)):
-                        if i+1 < len(self.subval_values):
-                            self.subval_values[i+1].config(text=subvals[i].strip())
-
-                except ValueError:
-                    messagebox.showerror("Parsing Error", f"Error parsing telemetry data: {value}")
-            elif line.startswith("RSSI:"):
-                value = line.split(":", 1)[1].strip()
-                self.box3_value.config(text=value)
-            elif line.startswith("Snr:"):
-                value = line.split(":", 1)[1].strip()
-                self.box4_value.config(text=value)
-
-            self.serial_handler.write_to_file(line)
-
-        self.root.after(10, self.update_gui)
-
+    # ---------------- MISSING METHODS ADDED ----------------
     def open_serial(self):
         """Open the serial port."""
         self.serial_handler.open_serial()
@@ -159,43 +130,95 @@ class SerialMonitorApp:
         self.serial_handler.close_serial()
         self.root.destroy()
 
+    def replay_data(self):
+        """Replay data from a selected file."""
+        # For example:
+        file_path = filedialog.askopenfilename(
+            title="Select Replay Data File",
+            filetypes=(("Text Files", "*.txt"), ("All Files", "*.*"))
+        )
+        if not file_path:
+            return
+        self.serial_handler.replay_data(file_path)
+        messagebox.showinfo("Replay", f"Replaying data from {file_path}")
+
     def show_about(self):
         """Display the About dialog."""
         messagebox.showinfo("About", "Serial Monitor App\nVersion 1.0\nDeveloped by Your Name")
 
-    def replay_data(self):
-        """Replay data from a selected file."""
-        # Prompt user to select a text file
+    def load_accel_data(self):
+        """
+        Load acceleration data from file & show in the visualization frame.
+        """
         file_path = filedialog.askopenfilename(
             title="Select Data File",
             filetypes=(("Text Files", "*.txt"), ("All Files", "*.*"))
         )
         if not file_path:
-            return  # User cancelled
+            return
 
-        # Verify file format
         try:
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
-            for line in lines:
-                line = line.strip()
-                if not (line.startswith("$Message length:") or
-                        line.startswith("Message:") or
-                        line.startswith("RSSI:") or
-                        line.startswith("Snr:")):
-                    raise ValueError(f"Invalid line format: {line}")
+            time_data, accel_x, accel_y, accel_z = data_loader.load_acceleration_data_from_file(file_path)
+            fig = graph.get_acceleration_time_fig(time_data, accel_x, accel_y, accel_z)
+
+            self.canvas = FigureCanvasTkAgg(fig, master=self.visualization_frame)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
         except Exception as e:
-            messagebox.showerror("File Error", f"Failed to load file: {e}")
-            return
+            messagebox.showerror("Data Error", str(e))
 
-        # Check if already replaying
-        if self.serial_handler.is_replaying:
-            messagebox.showwarning("Replay Data", "Replay is already in progress.")
-            return
+    def close_accel_data(self):
+        """
+        Close the loaded acceleration data visualization.
+        """
+        if hasattr(self, 'canvas'):
+            self.canvas.get_tk_widget().pack_forget()
+            del self.canvas
 
-        # Call serial_handler to replay data
-        success = self.serial_handler.replay_data(file_path)
-        if success:
-            messagebox.showinfo("Replay Data", "Data replay started.")
-        else:
-            messagebox.showwarning("Replay Data", "Replay is already in progress.")
+    def select_serial(self):
+        """List available serial ports and show them to the user."""
+        ports = self.serial_handler.list_serial_ports()
+        ports_str = "\n".join(ports) if ports else "No serial ports found."
+        messagebox.showinfo("Available Serial Ports", ports_str)
+
+    def update_gui(self):
+        """
+        Continuously read from self.serial_handler.serial_buffer and update
+        subvals + raw_data_text in the GUI. Then schedule another call.
+        """
+        while self.serial_handler.serial_buffer:
+            line = self.serial_handler.serial_buffer.pop(0)
+            self.raw_data_text.insert(tk.END, line + "\n")
+            self.raw_data_text.see(tk.END)
+
+            # Example parsing logic for your subvals:
+            if line.startswith("$Message length:"):
+                pass
+            elif line.startswith("Message:"):
+                # e.g. "Message: [2024/12/19 ... ] accel_x,accel_y,accel_z,..."
+                value = line.split(": ", 1)[1].strip()
+                try:
+                    timestamp_part, data_part = value.split("] ", 1)
+                    timestamp = timestamp_part.strip("[")
+                    subvals = data_part.split(",")
+
+                    # subval_values[0] is the timestamp
+                    if len(self.subval_values) > 0:
+                        self.subval_values[0].config(text=timestamp.strip())
+
+                    for i, subv in enumerate(subvals):
+                        if i+1 < len(self.subval_values):
+                            self.subval_values[i+1].config(text=subv.strip())
+                except ValueError:
+                    messagebox.showerror("Parsing Error", f"Error parsing: {value}")
+
+            elif line.startswith("RSSI:"):
+                pass
+            elif line.startswith("Snr:"):
+                pass
+
+            self.serial_handler.write_to_file(line)
+
+        # Schedule next update
+        self.root.after(10, self.update_gui)

@@ -5,6 +5,7 @@ import threading
 import os
 from utils import get_new_filename
 import time
+import serial.tools.list_ports
 
 class SerialHandler:
     def __init__(self, app):
@@ -79,4 +80,8 @@ class SerialHandler:
             self.serial_buffer.append(f"Replay Error: {e}")
         finally:
             self.is_replaying = False
-            
+
+    def list_serial_ports(self):
+        """List available serial ports on the computer."""
+        ports = serial.tools.list_ports.comports()
+        return [port.device for port in ports]
