@@ -1,7 +1,7 @@
 
 # DAS Rocket Telemetry GUI
 
-A Python-based application for reading, recording, and visualizing rocket telemetry data in real time, or from a pre-recorded file.
+DAS (Data Acquisition System) GUI is a Python-based application for reading, recording, and visualizing rocket telemetry data in real time, or from a pre-recorded file.
 
 ## Table of Contents
 
